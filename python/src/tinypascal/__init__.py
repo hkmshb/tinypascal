@@ -92,27 +92,31 @@ class Interpreter:
             self.error()
 
     def expr(self):
+        left, op, right = (None, None, None)
         self.current_token = self.get_next_token()
-        left = self.current_token
-        self.eat(Token.INTEGER)
 
-        op = self.current_token
-        if op.value in '+-*/':
-            self.eat(op.type)
+        while self.current_token is not None and self.current_token.type != Token.EOF:
+            if left is None:
+                left = self.current_token
+                self.eat(Token.INTEGER)
 
-        right = self.current_token
-        self.eat(Token.INTEGER)
+            op = self.current_token
+            if op.value in '+-*/':
+                self.eat(op.type)
 
-        if op.type == Token.PLUS:
-            result = left.value + right.value
-        elif op.type == Token.MINUS:
-            result = left.value - right.value
-        elif op.type == Token.MULTIPLY:
-            result = left.value * right.value
-        elif op.type == Token.DIVIDE:
-            result = left.value / right.value
-        return result
+            right = self.current_token
+            self.eat(Token.INTEGER)
 
+            if op.type == Token.PLUS:
+                result = left.value + right.value
+            elif op.type == Token.MINUS:
+                result = left.value - right.value
+            elif op.type == Token.MULTIPLY:
+                result = left.value * right.value
+            elif op.type == Token.DIVIDE:
+                result = left.value / right.value
+            left = Token(Token.INTEGER, round(result))
+        return left.value
 
 def main():
     while True:
