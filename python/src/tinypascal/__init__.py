@@ -15,6 +15,7 @@ class Token:
     # token type constants
     EOF = "EOF"
     PLUS = "PLUS"
+    MINUS = "MINUS"
     INTEGER = "INTEGER"
 
     def __init__(self, type, value):
@@ -46,13 +47,17 @@ class Interpreter:
         if self.pos > len(text) - 1:
             return Token(Token.EOF, None)
 
+        self._suppress_whitespace()
         current_char = text[self.pos]
+
         if current_char.isdigit():
-            token = Token(Token.INTEGER, int(current_char))
+            digits = self._read_digits()
+            token = Token(Token.INTEGER, int(digits))
             self.pos += 1
             return token
-        if current_char == '+':
-            token = Token(Token.PLUS, current_char)
+        if current_char in '+-':
+            token_type = Token.PLUS if current_char == '+' else Token.MINUS
+            token = Token(token_type, current_char)
             self.pos += 1
             return token
 
@@ -70,12 +75,36 @@ class Interpreter:
         self.eat(Token.INTEGER)
 
         op = self.current_token
-        self.eat(Token.PLUS)
+        if op.value in '+-':
+            self.eat(op.type)
 
         right = self.current_token
         self.eat(Token.INTEGER)
 
-        return left.value + right.value
+        if op.type == Token.PLUS:
+            return left.value + right.value
+        if op.type == Token.MINUS:
+            return left.value - right.value
+        self.error()
+
+    def _read_digits(self):
+        digits = []
+        current_char = self.text[self.pos]
+        while current_char.isdigit():
+            digits.append(current_char)
+            self.pos += 1
+            if self.pos >= len(self.text):
+                break
+            current_char = self.text[self.pos]
+
+        self.pos -= 1   # need to adjust pos to last digit
+        return ''.join(digits)
+
+    def _suppress_whitespace(self):
+        current_char = self.text[self.pos]
+        while current_char.isspace():
+            self.pos += 1
+            current_char = self.text[self.pos]
 
 
 def main():
