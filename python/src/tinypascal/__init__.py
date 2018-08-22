@@ -16,6 +16,8 @@ class Token:
     EOF = "EOF"
     PLUS = "PLUS"
     MINUS = "MINUS"
+    DIVIDE = "DIVIDE"
+    MULTIPLY = "MULTIPLY"
     INTEGER = "INTEGER"
 
     def __init__(self, type, value):
@@ -70,8 +72,13 @@ class Interpreter:
             if self.current_char.isdigit():
                 return Token(Token.INTEGER, self.get_integer())
 
-            if self.current_char in '+-':
-                token_type = Token.PLUS if self.current_char == '+' else Token.MINUS
+            if self.current_char in '+-*/':
+                token_type = (
+                    Token.PLUS if self.current_char == '+' else
+                    Token.MINUS if self.current_char == '-' else
+                    Token.MULTIPLY if self.current_char == '*' else
+                    Token.DIVIDE
+                )
                 token = Token(token_type, self.current_char)
                 self.advance()
                 return token
@@ -90,7 +97,7 @@ class Interpreter:
         self.eat(Token.INTEGER)
 
         op = self.current_token
-        if op.value in '+-':
+        if op.value in '+-*/':
             self.eat(op.type)
 
         right = self.current_token
@@ -98,28 +105,13 @@ class Interpreter:
 
         if op.type == Token.PLUS:
             result = left.value + right.value
-        if op.type == Token.MINUS:
+        elif op.type == Token.MINUS:
             result = left.value - right.value
+        elif op.type == Token.MULTIPLY:
+            result = left.value * right.value
+        elif op.type == Token.DIVIDE:
+            result = left.value / right.value
         return result
-
-    def _read_digits(self):
-        digits = []
-        current_char = self.text[self.pos]
-        while current_char.isdigit():
-            digits.append(current_char)
-            self.pos += 1
-            if self.pos >= len(self.text):
-                break
-            current_char = self.text[self.pos]
-
-        self.pos -= 1   # need to adjust pos to last digit
-        return ''.join(digits)
-
-    def _suppress_whitespace(self):
-        current_char = self.text[self.pos]
-        while current_char.isspace():
-            self.pos += 1
-            current_char = self.text[self.pos]
 
 
 def main():
