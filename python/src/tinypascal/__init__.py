@@ -37,31 +37,46 @@ class Interpreter:
         self.text = text
         self.pos = 0
         self.current_token = None
+        self.current_char = text[self.pos]
 
     def error(self, error_code=0):
         print('error: Error parsing input\n')
         sys.exit(error_code)
 
+    def advance(self):
+        self.pos += 1
+        if self.pos > len(self.text) - 1:
+            self.current_char = None
+        else:
+            self.current_char = self.text[self.pos]
+
+    def skip_whitespace(self):
+        while self.current_char is not None and self.current_char.isspace():
+            self.advance()
+
+    def get_integer(self):
+        result = ''
+        while self.current_char is not None and self.current_char.isdigit():
+            result += self.current_char
+            self.advance()
+        return int(result)
+
     def get_next_token(self):
-        text = self.text
-        if self.pos > len(text) - 1:
-            return Token(Token.EOF, None)
+        while self.current_char is not None:
+            if self.current_char.isspace():
+                self.skip_whitespace()
+                continue
 
-        self._suppress_whitespace()
-        current_char = text[self.pos]
+            if self.current_char.isdigit():
+                return Token(Token.INTEGER, self.get_integer())
 
-        if current_char.isdigit():
-            digits = self._read_digits()
-            token = Token(Token.INTEGER, int(digits))
-            self.pos += 1
-            return token
-        if current_char in '+-':
-            token_type = Token.PLUS if current_char == '+' else Token.MINUS
-            token = Token(token_type, current_char)
-            self.pos += 1
-            return token
+            if self.current_char in '+-':
+                token_type = Token.PLUS if self.current_char == '+' else Token.MINUS
+                token = Token(token_type, self.current_char)
+                self.advance()
+                return token
 
-        self.error()
+            self.error()
 
     def eat(self, token_type):
         if self.current_token.type == token_type:
@@ -82,10 +97,10 @@ class Interpreter:
         self.eat(Token.INTEGER)
 
         if op.type == Token.PLUS:
-            return left.value + right.value
+            result = left.value + right.value
         if op.type == Token.MINUS:
-            return left.value - right.value
-        self.error()
+            result = left.value - right.value
+        return result
 
     def _read_digits(self):
         digits = []
