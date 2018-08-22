@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import enum
+import sys
 import pkg_resources
 
 
@@ -12,11 +12,10 @@ def get_version():
 
 
 class Token:
-
-    class Type(enum.Enum):
-        EOF = "EOF"
-        PLUS = "PLUS"
-        INTEGER = "INTEGER"
+    # token type constants
+    EOF = "EOF"
+    PLUS = "PLUS"
+    INTEGER = "INTEGER"
 
     def __init__(self, type, value):
         self.type = type
@@ -38,21 +37,22 @@ class Interpreter:
         self.pos = 0
         self.current_token = None
 
-    def error(self):
-        raise Exception('Error parsing input')
+    def error(self, error_code=0):
+        print('error: Error parsing input\n')
+        sys.exit(error_code)
 
     def get_next_token(self):
         text = self.text
         if self.pos > len(text) - 1:
-            return Token(Token.Type.EOF, None)
+            return Token(Token.EOF, None)
 
         current_char = text[self.pos]
         if current_char.isdigit():
-            token = Token(Token.Type.INTEGER, int(current_char))
+            token = Token(Token.INTEGER, int(current_char))
             self.pos += 1
             return token
         if current_char == '+':
-            token = Token(Token.Type.PLUS, current_char)
+            token = Token(Token.PLUS, current_char)
             self.pos += 1
             return token
 
@@ -67,13 +67,13 @@ class Interpreter:
     def expr(self):
         self.current_token = self.get_next_token()
         left = self.current_token
-        self.eat(Token.Type.INTEGER)
+        self.eat(Token.INTEGER)
 
         op = self.current_token
-        self.eat(Token.Type.PLUS)
+        self.eat(Token.PLUS)
 
         right = self.current_token
-        self.eat(Token.Type.INTEGER)
+        self.eat(Token.INTEGER)
 
         return left.value + right.value
 
