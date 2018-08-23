@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
+import enum
 import pkg_resources
 
 
@@ -10,15 +11,16 @@ def get_version():
     return packages[0].version
 
 
-
-class Token:
-    # token type constants
+class TokenType(enum.Enum):
     EOF = "EOF"
     PLUS = "PLUS"
     MINUS = "MINUS"
     DIVIDE = "DIVIDE"
     MULTIPLY = "MULTIPLY"
     INTEGER = "INTEGER"
+
+
+class Token:
 
     def __init__(self, type, value):
         self.type = type
@@ -42,8 +44,7 @@ class Interpreter:
         self.current_char = text[self.pos]
 
     def error(self, error_code=0):
-        print('error: Error parsing input\n')
-        sys.exit(error_code)
+        raise Exception('Error parsing input\n')
 
     def advance(self):
         self.pos += 1
@@ -70,20 +71,21 @@ class Interpreter:
                 continue
 
             if self.current_char.isdigit():
-                return Token(Token.INTEGER, self.get_integer())
+                return Token(TokenType.INTEGER, self.get_integer())
 
             if self.current_char in '+-*/':
                 token_type = (
-                    Token.PLUS if self.current_char == '+' else
-                    Token.MINUS if self.current_char == '-' else
-                    Token.MULTIPLY if self.current_char == '*' else
-                    Token.DIVIDE
+                    TokenType.PLUS if self.current_char == '+' else
+                    TokenType.MINUS if self.current_char == '-' else
+                    TokenType.MULTIPLY if self.current_char == '*' else
+                    TokenType.DIVIDE
                 )
                 token = Token(token_type, self.current_char)
                 self.advance()
                 return token
 
             self.error()
+        return Token(TokenType.EOF, None)
 
     def eat(self, token_type):
         if self.current_token.type == token_type:
@@ -95,28 +97,32 @@ class Interpreter:
         left, op, right = (None, None, None)
         self.current_token = self.get_next_token()
 
-        while self.current_token is not None and self.current_token.type != Token.EOF:
+        while (
+            self.current_token is not None and
+            self.current_token.type != TokenType.EOF
+        ):
             if left is None:
                 left = self.current_token
-                self.eat(Token.INTEGER)
+                self.eat(TokenType.INTEGER)
 
             op = self.current_token
             if op.value in '+-*/':
                 self.eat(op.type)
 
             right = self.current_token
-            self.eat(Token.INTEGER)
+            self.eat(TokenType.INTEGER)
 
-            if op.type == Token.PLUS:
+            if op.type == TokenType.PLUS:
                 result = left.value + right.value
-            elif op.type == Token.MINUS:
+            elif op.type == TokenType.MINUS:
                 result = left.value - right.value
-            elif op.type == Token.MULTIPLY:
+            elif op.type == TokenType.MULTIPLY:
                 result = left.value * right.value
-            elif op.type == Token.DIVIDE:
+            elif op.type == TokenType.DIVIDE:
                 result = left.value / right.value
-            left = Token(Token.INTEGER, round(result))
+            left = Token(TokenType.INTEGER, round(result))
         return left.value
+
 
 def main():
     while True:
@@ -126,6 +132,11 @@ def main():
             break
         if not text:
             continue
-        interpreter = Interpreter(text)
-        result = interpreter.expr()
-        print(result)
+
+        try:
+            interpreter = Interpreter(text)
+            result = interpreter.expr()
+            print(result)
+        except Exception as ex:
+            print('error: {}'.format(ex))
+            sys.exit()
