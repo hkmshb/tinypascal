@@ -1,0 +1,7 @@
+[package]
+name = "tinypascal"
+version = "0.1.0"
+authors = ["Abdul-Hakeem Shaibu <hkmshb@gmail.com>"]
+
+[dependencies]
+rand = "0.3"
