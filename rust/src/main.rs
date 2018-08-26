@@ -24,21 +24,46 @@ fn main() {
     io::stdin().read_line(&mut cur.text)
         .expect("Failed to read line");
 
-    let token = get_next_token(cur);
-    println!("Current Token: {:?}", token);
+    let result = expr(&mut cur);
+    println!("Result: {}", result);
 }
 
-fn get_next_token(cur: Cursor) -> Token {
+
+fn get_next_token(cur: &mut Cursor) -> Token {
     if cur.pos <= (cur.text.trim().len() - 1) as u32 {
         let current_char = cur.text.chars()
             .nth(cur.pos as usize)
             .expect("EOF reached for provided expression");
 
         if current_char.is_numeric() {
-            return Token {typ: String::from("INTEGER"), val: current_char};
+            let token = Token {typ: String::from("INTEGER"), val: current_char};
+            cur.pos += 1;
+            return token;
         } else if current_char == '+' {
-            return Token {typ: String::from("PLUS"), val: current_char};
+            let token = Token {typ: String::from("PLUS"), val: current_char};
+            cur.pos += 1;
+            return token;
         }
     }
     Token {typ: String::from("EOF"), val: ' '}
+}
+
+fn expr(cur: &mut Cursor) -> u32 {
+    let left = get_next_token(cur);
+    if left.typ == "INTEGER" {
+        let op = get_next_token(cur);
+        if op.typ == "PLUS" {
+            let right = get_next_token(cur);
+            if right.typ == "INTEGER" {
+                let lt: u32 = left.val.to_digit(10)
+                    .expect("Integer parsing failed");
+
+                let rt: u32 = right.val.to_digit(10)
+                    .expect("Integer parsing failed");
+                
+                return lt + rt;
+            }
+        }
+    }
+    0
 }
