@@ -50,22 +50,31 @@ impl Cursor {
             val: "".to_string()
         };
     }
+
+    fn skip_whitespace(&mut self) {
+        let mut current_char = self.current();
+        while current_char != '?' && current_char.is_whitespace() {
+            current_char = self.next();
+        }
+    }
 }
 
 
 fn main() {
-    let mut text = String::new();
-    while text.trim().is_empty() {
-        print!("calc> ");
-        io::stdout().flush()
-            .expect("Print failed!");
+    loop {
+        let mut text = String::new();
+        while text.trim().is_empty() {
+            print!("calc> ");
+            io::stdout().flush()
+                .expect("Print failed!");
 
-        io::stdin().read_line(&mut text)
-            .expect("Failed to read line!");
+            io::stdin().read_line(&mut text)
+                .expect("Failed to read line!");
+        }
+
+        let result = expr(text);
+        println!("  >>> {}\n", result);
     }
-
-    let result = expr(text);
-    println!("  >>> {}", result);
 }
 
 
@@ -91,7 +100,7 @@ fn get_next_token(cur: &mut Cursor) -> Token {
     let mut current_char = cur.current();
     while current_char != '?' {
         if current_char.is_whitespace() {
-            skip_whitespace(cur);
+            cur.skip_whitespace();
             current_char = cur.current();
             continue;
         }
@@ -119,14 +128,6 @@ fn get_next_token(cur: &mut Cursor) -> Token {
         }
     }
     Token {typ:String::from("EOF"), val: "".to_string()}
-}
-
-
-fn skip_whitespace(cur: &mut Cursor) {
-    let mut current_char = cur.current();
-    while current_char != '?' && current_char.is_whitespace() {
-        current_char = cur.next();
-    }
 }
 
 
