@@ -4,66 +4,137 @@ use std::io::{self, Write};
 #[derive(Debug)]
 struct Token {
     typ: String,
-    val: char,
+    val: String,
 }
 
+
+#[derive(Debug)]
 struct Cursor {
+    pos: usize,
     text: String,
-    pos: u32,
+    current_token: Token
 }
+
+impl Cursor {
+    fn new(text: String) -> Cursor {
+        Cursor {
+            pos: 0,
+            text: text.trim().to_string(),
+            current_token: Token {typ: "BOF".to_string(), val: "".to_string()}
+        }
+    }
+
+    fn current(&self) -> char {
+        if self.pos <= self.text.len() - 1 {
+            return self.text.chars()
+                .nth(self.pos)
+                .unwrap()
+        }
+        '?'
+    }
+
+    fn next(&mut self) -> char {
+        self.pos += 1;
+        if self.pos <= self.text.len() - 1 {
+            return self.text.chars()
+                .nth(self.pos)
+                .unwrap()
+        }
+        '?'
+    }
+
+    fn reset(&mut self) {
+        self.pos = 0;
+        self.current_token = Token {
+            typ: "BOF".to_string(),
+            val: "".to_string()
+        };
+    }
+}
+
 
 fn main() {
-    let mut cur = Cursor {
-        text: String::new(),
-        pos: 0,
-    };
+    let mut text = String::new();
+    while text.trim().is_empty() {
+        print!("calc> ");
+        io::stdout().flush()
+            .expect("Print failed!");
 
-    print!("calc> ");
-    io::stdout().flush().expect("Print failed");
+        io::stdin().read_line(&mut text)
+            .expect("Failed to read line!");
+    }
 
-    io::stdin().read_line(&mut cur.text)
-        .expect("Failed to read line");
+    let result = expr(text);
+    println!("  >>> {}", result);
+}
 
-    let result = expr(&mut cur);
-    println!("Result: {}", result);
+
+fn expr(text: String) -> u32 {
+    let mut cur = Cursor::new(text);
+    let mut token = get_next_token(&mut cur);
+
+    while token.typ != "EOF" {
+        println!("{:?}", token);
+
+        cur.next();
+        token = get_next_token(&mut cur);
+    }
+    0
 }
 
 
 fn get_next_token(cur: &mut Cursor) -> Token {
-    if cur.pos <= (cur.text.trim().len() - 1) as u32 {
-        let current_char = cur.text.chars()
-            .nth(cur.pos as usize)
-            .expect("EOF reached for provided expression");
+    let mut current_char = cur.current();
+    while current_char != '?' {
+        if current_char.is_whitespace() {
+            skip_whitespace(cur);
+            current_char = cur.current();
+            continue;
+        }
 
         if current_char.is_numeric() {
-            let token = Token {typ: String::from("INTEGER"), val: current_char};
-            cur.pos += 1;
-            return token;
-        } else if current_char == '+' {
-            let token = Token {typ: String::from("PLUS"), val: current_char};
-            cur.pos += 1;
-            return token;
+            let digits = get_digits(cur);
+            return Token {
+                typ: String::from("INTEGER"),
+                val: digits
+            };
+        }
+        if "+-".contains(current_char) {
+            if current_char == '+' {
+                return Token {
+                    typ: String::from("PLUS"),
+                    val: current_char.to_string()
+                };
+            }
+            return Token {
+                typ: String::from("MINUS"),
+                val: current_char.to_string()
+            };
         }
     }
-    Token {typ: String::from("EOF"), val: ' '}
+    Token {typ:String::from("EOF"), val: "".to_string()}
 }
 
-fn expr(cur: &mut Cursor) -> u32 {
-    let left = get_next_token(cur);
-    if left.typ == "INTEGER" {
-        let op = get_next_token(cur);
-        if op.typ == "PLUS" {
-            let right = get_next_token(cur);
-            if right.typ == "INTEGER" {
-                let lt: u32 = left.val.to_digit(10)
-                    .expect("Integer parsing failed");
 
-                let rt: u32 = right.val.to_digit(10)
-                    .expect("Integer parsing failed");
-                
-                return lt + rt;
-            }
-        }
+fn skip_whitespace(cur: &mut Cursor) {
+    let mut current_char = cur.current();
+    while current_char != '?' && current_char.is_whitespace() {
+        current_char = cur.next();
     }
-    0
+}
+
+
+fn get_digits(cur: &mut Cursor) -> String {
+    let mut digits = String::new();
+    let mut current_char = cur.current();
+    while current_char != '?' && current_char.is_numeric() {
+        digits.push(current_char);
+        current_char = cur.next();
+    }
+    // adjust pos to last digit entry
+    if digits.len() > 0 {
+        cur.pos -= 1;
+    }
+
+    digits
 }
