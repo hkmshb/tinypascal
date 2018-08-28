@@ -20,7 +20,7 @@ impl Cursor {
         Cursor {
             pos: 0,
             text: text.trim().to_string(),
-            current_token: Token {typ: "BOF".to_string(), val: "".to_string()}
+            current_token: Token {typ: String::from("BOF"), val: "".to_string()}
         }
     }
 
@@ -71,15 +71,19 @@ fn main() {
 
 fn expr(text: String) -> u32 {
     let mut cur = Cursor::new(text);
-    let mut token = get_next_token(&mut cur);
+    cur.current_token = get_next_token(&mut cur);
 
-    while token.typ != "EOF" {
-        println!("{:?}", token);
-
-        cur.next();
-        token = get_next_token(&mut cur);
+    let mut result = term(&mut cur);
+    while ["PLUS", "MINUS"].contains(&&cur.current_token.typ[..]) {
+        if cur.current_token.typ == "PLUS" {
+            eat(&mut cur, String::from("PLUS"));
+            result += term(&mut cur);
+        } else {
+            eat(&mut cur, String::from("MINUS"));
+            result -= term(&mut cur);
+        }
     }
-    0
+    result
 }
 
 
@@ -100,6 +104,8 @@ fn get_next_token(cur: &mut Cursor) -> Token {
             };
         }
         if "+-".contains(current_char) {
+            cur.next();
+
             if current_char == '+' {
                 return Token {
                     typ: String::from("PLUS"),
@@ -131,10 +137,24 @@ fn get_digits(cur: &mut Cursor) -> String {
         digits.push(current_char);
         current_char = cur.next();
     }
-    // adjust pos to last digit entry
-    if digits.len() > 0 {
-        cur.pos -= 1;
-    }
 
     digits
+}
+
+
+fn eat(cur: &mut Cursor, token_type: String) {
+    if cur.current_token.typ == token_type {
+        cur.current_token = get_next_token(cur);
+    }
+}
+
+
+fn term(cur: &mut Cursor) -> u32 {
+    let value = cur.current_token.val.clone();
+    eat(cur, String::from("INTEGER"));
+
+    let value: u32 = value.parse()
+        .expect("Invalid integer token");
+
+    value
 }
