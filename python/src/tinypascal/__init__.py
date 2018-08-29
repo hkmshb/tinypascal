@@ -40,7 +40,6 @@ class Lexer:
     def __init__(self, text):
         self.text = text
         self.pos = 0
-        self.current_token = None
         self.current_char = text[self.pos]
 
     def error(self):
@@ -87,50 +86,52 @@ class Lexer:
             self.error()
         return Token(TokenType.EOF, None)
 
-    def eat(self, token_type):
-        if self.current_token.type == token_type:
-            self.current_token = self.get_next_token()
-        else:
-            self.error()
-
 
 class Interpreter:
 
     def __init__(self, lexer):
         self.lexer = lexer
+        self.current_token = lexer.get_next_token()
 
     def error(self, error_code=0):
-        raise Exception('Error parsing input\n')
+        raise Exception('Error parsing input')
+
+    def eat(self, token_type):
+        if self.current_token.type == token_type:
+            self.current_token = self.lexer.get_next_token()
+        else:
+            self.error()
+
+    def term(self):
+        token = self.current_token
+        self.eat(TokenType.INTEGER)
+        return token.value
 
     def expr(self):
-        left, op, right = (None, None, None)
-        self.lexer.current_token = self.lexer.get_next_token()
+        result = self.term()
 
-        while (
-            self.lexer.current_token is not None and
-            self.lexer.current_token.type != TokenType.EOF
+        while self.current_token.type in (
+            TokenType.PLUS, TokenType.MINUS,
+            TokenType.MUL, TokenType.DIV
         ):
-            if left is None:
-                left = self.lexer.current_token
-                self.lexer.eat(TokenType.INTEGER)
+            if self.lexer.current_char.isspace():
+                self.lexer.skip_whitespace()
+                continue
 
-            op = self.lexer.current_token
-            if op.value in '+-*/':
-                self.lexer.eat(op.type)
-
-            right = self.lexer.current_token
-            self.lexer.eat(TokenType.INTEGER)
-
-            if op.type == TokenType.PLUS:
-                result = left.value + right.value
-            elif op.type == TokenType.MINUS:
-                result = left.value - right.value
-            elif op.type == TokenType.MUL:
-                result = left.value * right.value
-            elif op.type == TokenType.DIV:
-                result = left.value / right.value
-            left = Token(TokenType.INTEGER, round(result))
-        return left.value
+            token = self.current_token
+            if token.type == TokenType.PLUS:
+                self.eat(TokenType.PLUS)
+                result += self.term()
+            elif token.type == TokenType.MINUS:
+                self.eat(TokenType.MINUS)
+                result -= self.term()
+            elif token.type == TokenType.MUL:
+                self.eat(TokenType.MUL)
+                result *= self.term()
+            elif token.type == TokenType.DIV:
+                self.eat(TokenType.DIV)
+                result /= self.term()
+        return result
 
 
 def main():
