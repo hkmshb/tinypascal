@@ -123,24 +123,41 @@ class Interpreter:
         else:
             self.error()
 
-    def term(self):
+    def factor(self):
+        '''factor : INTEGER
+        '''
         token = self.current_token
         self.eat(TokenType.INTEGER)
         return token.value
 
+    def term(self):
+        '''term: factor ((MUL | DIV) factor)*
+        '''
+        result = self.factor()
+        while self.current_token.type in (TokenType.MUL, TokenType.DIV):
+            token = self.current_token
+            if token.type == TokenType.MUL:
+                self.eat(TokenType.MUL)
+                result *= self.factor()
+            elif token.type == TokenType.DIV:
+                self.eat(TokenType.DIV)
+                result /= self.factor()
+        return result
+
+
     def expr(self):
         '''Arithmetic expression parser / interpreter.
+
+        calc> 9 + 8 - 3 * 5
+        2
+
+        expr:   term ((PLUS | MINUS) term)*
+        term:   factor ((MUL | DIV) factor)*
+        factor: INTEGER
         '''
         result = self.term()
 
-        while self.current_token.type in (
-            TokenType.PLUS, TokenType.MINUS,
-            TokenType.MUL, TokenType.DIV
-        ):
-            if self.lexer.current_char.isspace():
-                self.lexer.skip_whitespace()
-                continue
-
+        while self.current_token.type in (TokenType.PLUS, TokenType.MINUS):
             token = self.current_token
             if token.type == TokenType.PLUS:
                 self.eat(TokenType.PLUS)
@@ -148,12 +165,6 @@ class Interpreter:
             elif token.type == TokenType.MINUS:
                 self.eat(TokenType.MINUS)
                 result -= self.term()
-            elif token.type == TokenType.MUL:
-                self.eat(TokenType.MUL)
-                result *= self.term()
-            elif token.type == TokenType.DIV:
-                self.eat(TokenType.DIV)
-                result /= self.term()
         return result
 
 
