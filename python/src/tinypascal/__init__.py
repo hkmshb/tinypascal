@@ -27,6 +27,13 @@ class Token:
         self.value = value
 
     def __str__(self):
+        '''String representation of class instance.
+
+        Examples:
+            Token(TokenType.INTEGER, 3)
+            Token(TokenType.PLUS, '+')
+            Token(TokenType.DIV, '/')
+        '''
         return "Token ({type}, {value})".format(
             type=self.type, value=self.value
         )
@@ -38,7 +45,9 @@ class Token:
 class Lexer:
 
     def __init__(self, text):
+        # client string input, e.g: "3 * 5", "9 + 2 - 3 * 5"
         self.text = text
+        # self.pos is index into client string input, self.text
         self.pos = 0
         self.current_char = text[self.pos]
 
@@ -46,6 +55,8 @@ class Lexer:
         raise Exception("Invalid character")
 
     def advance(self):
+        '''Advance the `pos` pointer and set the `current_char` variable.
+        '''
         self.pos += 1
         if self.pos > len(self.text) - 1:
             self.current_char = None
@@ -57,6 +68,8 @@ class Lexer:
             self.advance()
 
     def get_integer(self):
+        '''Return a multidigit integer consumed from the input.
+        '''
         result = ''
         while self.current_char is not None and self.current_char.isdigit():
             result += self.current_char
@@ -64,6 +77,11 @@ class Lexer:
         return int(result)
 
     def get_next_token(self):
+        '''Lexical analyser (aka scanner or tokenizer)
+
+        This method is repsonsible for breaking an expression apart into
+        tokens. One token at a time.
+        '''
         while self.current_char is not None:
             if self.current_char.isspace():
                 self.skip_whitespace()
@@ -97,6 +115,9 @@ class Interpreter:
         raise Exception('Error parsing input')
 
     def eat(self, token_type):
+        # compares the current token with the passed in token type and if
+        # they match then `eat` the current token and assign the ntext
+        # token ...
         if self.current_token.type == token_type:
             self.current_token = self.lexer.get_next_token()
         else:
@@ -108,6 +129,8 @@ class Interpreter:
         return token.value
 
     def expr(self):
+        '''Arithmetic expression parser / interpreter.
+        '''
         result = self.term()
 
         while self.current_token.type in (
