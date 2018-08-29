@@ -15,8 +15,8 @@ class TokenType(enum.Enum):
     EOF = "EOF"
     PLUS = "PLUS"
     MINUS = "MINUS"
-    DIVIDE = "DIVIDE"
-    MULTIPLY = "MULTIPLY"
+    DIV = "DIV"
+    MUL = "MUL"
     INTEGER = "INTEGER"
 
 
@@ -35,7 +35,7 @@ class Token:
         return self.__str__()
 
 
-class Interpreter:
+class Lexer:
 
     def __init__(self, text):
         self.text = text
@@ -43,8 +43,8 @@ class Interpreter:
         self.current_token = None
         self.current_char = text[self.pos]
 
-    def error(self, error_code=0):
-        raise Exception('Error parsing input\n')
+    def error(self):
+        raise Exception("Invalid character")
 
     def advance(self):
         self.pos += 1
@@ -77,8 +77,8 @@ class Interpreter:
                 token_type = (
                     TokenType.PLUS if self.current_char == '+' else
                     TokenType.MINUS if self.current_char == '-' else
-                    TokenType.MULTIPLY if self.current_char == '*' else
-                    TokenType.DIVIDE
+                    TokenType.MUL if self.current_char == '*' else
+                    TokenType.DIV
                 )
                 token = Token(token_type, self.current_char)
                 self.advance()
@@ -93,32 +93,41 @@ class Interpreter:
         else:
             self.error()
 
+
+class Interpreter:
+
+    def __init__(self, lexer):
+        self.lexer = lexer
+
+    def error(self, error_code=0):
+        raise Exception('Error parsing input\n')
+
     def expr(self):
         left, op, right = (None, None, None)
-        self.current_token = self.get_next_token()
+        self.lexer.current_token = self.lexer.get_next_token()
 
         while (
-            self.current_token is not None and
-            self.current_token.type != TokenType.EOF
+            self.lexer.current_token is not None and
+            self.lexer.current_token.type != TokenType.EOF
         ):
             if left is None:
-                left = self.current_token
-                self.eat(TokenType.INTEGER)
+                left = self.lexer.current_token
+                self.lexer.eat(TokenType.INTEGER)
 
-            op = self.current_token
+            op = self.lexer.current_token
             if op.value in '+-*/':
-                self.eat(op.type)
+                self.lexer.eat(op.type)
 
-            right = self.current_token
-            self.eat(TokenType.INTEGER)
+            right = self.lexer.current_token
+            self.lexer.eat(TokenType.INTEGER)
 
             if op.type == TokenType.PLUS:
                 result = left.value + right.value
             elif op.type == TokenType.MINUS:
                 result = left.value - right.value
-            elif op.type == TokenType.MULTIPLY:
+            elif op.type == TokenType.MUL:
                 result = left.value * right.value
-            elif op.type == TokenType.DIVIDE:
+            elif op.type == TokenType.DIV:
                 result = left.value / right.value
             left = Token(TokenType.INTEGER, round(result))
         return left.value
@@ -134,7 +143,7 @@ def main():
             continue
 
         try:
-            interpreter = Interpreter(text)
+            interpreter = Interpreter(Lexer(text))
             result = interpreter.expr()
             print(result)
         except Exception as ex:
