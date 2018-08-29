@@ -13,11 +13,13 @@ def get_version():
 
 class TokenType(enum.Enum):
     EOF = "EOF"
-    PLUS = "PLUS"
+    LPAREN = "("
+    RPAREN = ")"
+    INTEGER = "INTEGER"
     MINUS = "MINUS"
+    PLUS = "PLUS"
     DIV = "DIV"
     MUL = "MUL"
-    INTEGER = "INTEGER"
 
 
 class Token:
@@ -90,12 +92,14 @@ class Lexer:
             if self.current_char.isdigit():
                 return Token(TokenType.INTEGER, self.get_integer())
 
-            if self.current_char in '+-*/':
+            if self.current_char in '+-*/()':
                 token_type = (
                     TokenType.PLUS if self.current_char == '+' else
                     TokenType.MINUS if self.current_char == '-' else
                     TokenType.MUL if self.current_char == '*' else
-                    TokenType.DIV
+                    TokenType.DIV if self.current_char == '/' else
+                    TokenType.LPAREN if self.current_char == '(' else
+                    TokenType.RPAREN
                 )
                 token = Token(token_type, self.current_char)
                 self.advance()
@@ -124,11 +128,17 @@ class Interpreter:
             self.error()
 
     def factor(self):
-        '''factor : INTEGER
+        '''factor : INTEGER | LPAREN expr RPAREN
         '''
         token = self.current_token
-        self.eat(TokenType.INTEGER)
-        return token.value
+        if token.type == TokenType.INTEGER:
+            self.eat(TokenType.INTEGER)
+            return token.value
+        elif token.type == TokenType.LPAREN:
+            self.eat(TokenType.LPAREN)
+            value = self.expr()
+            self.eat(TokenType.RPAREN)
+            return value
 
     def term(self):
         '''term: factor ((MUL | DIV) factor)*
