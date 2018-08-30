@@ -36,14 +36,6 @@ class TestLexer:
             TokenType.INTEGER, TokenType.EOF
         ])
 
-    @pytest.mark.parametrize('expression, result', [
-        ('2+5', 7), ('5 -2', 3), ('2- 5', -3),
-        ('99 / 9', 11), ('2 + 2 - 1 * 6 / 2', 1)
-    ])
-    def test_expression_evaluation(self, expression, result):
-        lxr = Lexer(expression)
-        assert Interpreter(Parser(lxr)).run() == result
-
     def test_pascal_statement_lexical_analysis(self):
         lxr = Lexer("BEGIN a := 5; END.")
         self._assert_expected_token_types(lxr, [
@@ -55,6 +47,19 @@ class TestLexer:
 
 
 class TestInterpreter:
+
+    @pytest.mark.parametrize('expression, result', [
+        ('BEGIN x := 2+5; END.', 7),
+        ('BEGIN x := 5 -2; END.', 3),
+        ('BEGIN x := 2- 5; END.', -3),
+        ('BEGIN x := 99 / 9; END.', 11),
+        ('BEGIN x := 2 + 2 - 1 * 6 / 2; END.', 1)
+    ])
+    def test_expression_evaluation(self, expression, result):
+        lxr = Lexer(expression)
+        it = Interpreter(Parser(lxr))
+        it.run()
+        assert 'x' in it.GLOBAL_SCOPE and it.GLOBAL_SCOPE['x'] == result
 
     def test_fails_for_invalid_expression(self):
         with pytest.raises(Exception):  # missing operator
@@ -77,3 +82,24 @@ class TestInterpreter:
             # reset pos & call expr
             lxr.pos = 0
             Interpreter(Parser(lxr)).run()
+
+    def test_basic_pascal_code(self):
+        code = """
+        BEGIN
+            BEGIN
+                number := 2;
+                a := number;
+                b := 10 * a + 10 * number / 4;
+                c := a - - b
+            END;
+            x := 11;
+        END.
+        """
+        lxr = Lexer(code)
+        it = Interpreter(Parser(lxr))
+        it.run()
+        assert 'number' in it.GLOBAL_SCOPE and it.GLOBAL_SCOPE['number'] == 2
+        assert 'a' in it.GLOBAL_SCOPE and it.GLOBAL_SCOPE['a'] == 2
+        assert 'b' in it.GLOBAL_SCOPE and it.GLOBAL_SCOPE['b'] == 25
+        assert 'c' in it.GLOBAL_SCOPE and it.GLOBAL_SCOPE['c'] == 27
+        assert 'x' in it.GLOBAL_SCOPE and it.GLOBAL_SCOPE['x'] == 11

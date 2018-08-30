@@ -27,6 +27,11 @@ class Interpreter(NodeVisitor):
 
     def __init__(self, parser):
         self.parser = parser
+        self.GLOBAL_SCOPE = {}
+
+    def visit_Assign(self, node):
+        var_name = node.left.value
+        self.GLOBAL_SCOPE[var_name] = self.visit(node.right)
 
     def visit_BinOp(self, node):
         if node.op.type == TokenType.PLUS:
@@ -38,6 +43,10 @@ class Interpreter(NodeVisitor):
         if node.op.type == TokenType.DIV:
             return self.visit(node.left) / self.visit(node.right)
 
+    def visit_Compound(self, node):
+        for child in node.children:
+            self.visit(child)
+
     def visit_UnaryOp(self, node):
         if node.op.type == TokenType.PLUS:
             return + self.visit(node.expr)
@@ -46,6 +55,16 @@ class Interpreter(NodeVisitor):
 
     def visit_Num(self, node):
         return node.value
+
+    def visit_NoOp(self, node):
+        pass
+
+    def visit_Var(self, node):
+        var_name = node.value
+        val = self.GLOBAL_SCOPE.get(var_name)
+        if val is None:
+            raise NameError(repr(var_name))
+        return val
 
     def run(self):
         tree = self.parser.parse()
@@ -65,6 +84,7 @@ def main():
             parser = Parser(Lexer(text))
             interpreter = Interpreter(parser)
             print(interpreter.run())
+            print(interpreter.GLOBAL_SCOPE)
         except Exception as ex:
             print('error: {}'.format(ex))
             sys.exit()
