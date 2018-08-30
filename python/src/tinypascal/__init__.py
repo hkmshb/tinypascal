@@ -39,6 +39,12 @@ class Interpreter(NodeVisitor):
         if node.op.type == TokenType.DIV:
             return self.visit(node.left) / self.visit(node.right)
 
+    def visit_UnaryOp(self, node):
+        if node.op.type == TokenType.PLUS:
+            return + self.visit(node.expr)
+        if node.op.type == TokenType.MINUS:
+            return - self.visit(node.expr)
+
     def visit_Num(self, node):
         return node.value
 

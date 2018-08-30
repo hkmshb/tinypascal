@@ -8,17 +8,25 @@ class AST:
     pass
 
 
+class BinOp(AST):
+    def __init__(self, left, op, right):
+        self.left = left
+        self.token = self.op = op
+        self.right = right
+
+
+class UnaryOp(AST):
+    def __init__(self, op, expr):
+        self.token = self.op = op
+        self.expr = expr
+
+
 class Num(AST):
     def __init__(self, token):
         self.token = token
         self.value = token.value
 
 
-class BinOp(AST):
-    def __init__(self, left, op, right):
-        self.left = left
-        self.token = self.op = op
-        self.right = right
 
 
 class Parser:
@@ -40,9 +48,15 @@ class Parser:
             self.error()
 
     def factor(self):
-        '''factor : INTEGER | LPAREN expr RPAREN
+        '''factor : (PLUS | MINUS) factor | INTEGER | LPAREN expr RPAREN
         '''
         token = self.current_token
+        if token.type == TokenType.PLUS:
+            self.eat(TokenType.PLUS)
+            return UnaryOp(token, self.factor())
+        if token.type == TokenType.MINUS:
+            self.eat(TokenType.MINUS)
+            return UnaryOp(token, self.factor())
         if token.type == TokenType.INTEGER:
             self.eat(TokenType.INTEGER)
             return Num(token)
