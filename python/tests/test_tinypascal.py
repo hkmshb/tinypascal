@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from tinypascal import get_version, Interpreter, TokenType
+from tinypascal import get_version, TokenType, Lexer, Parser, Interpreter
+
 
 
 def test_version_detail():
@@ -10,57 +11,57 @@ def test_version_detail():
     assert version == '0.1.dev0'
 
 
-class TestInterpreter:
+class TestLexer:
 
-    def _assert_expected_token_types(self, it, token_types):
+    def _assert_expected_token_types(self, lxr, token_types):
         for token_type in token_types:
-            assert it.get_next_token().type == token_type
+            assert lxr.get_next_token().type == token_type
 
     def test_fails_for_empty_text(self):
         with pytest.raises(IndexError):
-            it = Interpreter('')
-            assert it.get_next_token().type == TokenType.EOF
+            lxr = Lexer('')
+            assert lxr.get_next_token().type == TokenType.EOF
 
     def test_valid_lexical_analysis(self):
-        it = Interpreter('3 + 4')
-        self._assert_expected_token_types(it, [
+        lxr = Lexer('3 + 4')
+        self._assert_expected_token_types(lxr, [
             TokenType.INTEGER, TokenType.PLUS,
             TokenType.INTEGER, TokenType.EOF
         ])
 
-        it = Interpreter('88 * 2 + 987')
-        self._assert_expected_token_types(it, [
-            TokenType.INTEGER, TokenType.MULTIPLY,
+        lxr = Lexer('88 * 2 + 987')
+        self._assert_expected_token_types(lxr, [
+            TokenType.INTEGER, TokenType.MUL,
             TokenType.INTEGER, TokenType.PLUS,
             TokenType.INTEGER, TokenType.EOF
         ])
 
     def test_failing_lexical_analysis(self):
         with pytest.raises(Exception):  # missing operator
-            it = Interpreter('92 1')
-            self._assert_expected_token_types(it, [
+            lxr = Lexer('92 1')
+            self._assert_expected_token_types(lxr, [
                 TokenType.INTEGER, TokenType.INTEGER
             ])
 
             # reset in preparation for calling expr
-            it.pos = 0
-            it.expr()
+            lxr.pos = 0
+            Interpreter(Parser(lxr)).run()
 
         with pytest.raises(Exception):  # invalid token order
-            it = Interpreter('+ 92 1')
-            self._assert_expected_token_types(it, [
+            lxr = Lexer('+ 92 1')
+            self._assert_expected_token_types(lxr, [
                 TokenType.PLUS, TokenType.INTEGER, TokenType.INTEGER,
                 TokenType.EOF
             ])
 
             # reset pos & call expr
-            it.pos = 0
-            it.expr()
+            lxr.pos = 0
+            Interpreter(Parser(lxr)).run()
 
     @pytest.mark.parametrize('expression, result', [
         ('2+5', 7), ('5 -2', 3), ('2- 5', -3),
-        ('99 / 9', 11), ('2 + 2 - 1 * 6 / 2', 9)
+        ('99 / 9', 11), ('2 + 2 - 1 * 6 / 2', 1)
     ])
     def test_expression_evaluation(self, expression, result):
-        it = Interpreter(expression)
-        assert it.expr() == result
+        lxr = Lexer(expression)
+        assert Interpreter(Parser(lxr)).run() == result
