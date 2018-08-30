@@ -5,7 +5,6 @@ from .lexer import Lexer, TokenType
 from .parser import Parser
 
 
-
 def get_version():
     '''Returns the version details for tinypascal.
     '''

@@ -36,7 +36,27 @@ class TestLexer:
             TokenType.INTEGER, TokenType.EOF
         ])
 
-    def test_failing_lexical_analysis(self):
+    @pytest.mark.parametrize('expression, result', [
+        ('2+5', 7), ('5 -2', 3), ('2- 5', -3),
+        ('99 / 9', 11), ('2 + 2 - 1 * 6 / 2', 1)
+    ])
+    def test_expression_evaluation(self, expression, result):
+        lxr = Lexer(expression)
+        assert Interpreter(Parser(lxr)).run() == result
+
+    def test_pascal_statement_lexical_analysis(self):
+        lxr = Lexer("BEGIN a := 5; END.")
+        self._assert_expected_token_types(lxr, [
+            TokenType.BEGIN, TokenType.ID,
+            TokenType.ASSIGN, TokenType.INTEGER,
+            TokenType.SEMI, TokenType.END,
+            TokenType.DOT
+        ])
+
+
+class TestInterpreter:
+
+    def test_fails_for_invalid_expression(self):
         with pytest.raises(Exception):  # missing operator
             lxr = Lexer('92 1')
             self._assert_expected_token_types(lxr, [
@@ -57,11 +77,3 @@ class TestLexer:
             # reset pos & call expr
             lxr.pos = 0
             Interpreter(Parser(lxr)).run()
-
-    @pytest.mark.parametrize('expression, result', [
-        ('2+5', 7), ('5 -2', 3), ('2- 5', -3),
-        ('99 / 9', 11), ('2 + 2 - 1 * 6 / 2', 1)
-    ])
-    def test_expression_evaluation(self, expression, result):
-        lxr = Lexer(expression)
-        assert Interpreter(Parser(lxr)).run() == result

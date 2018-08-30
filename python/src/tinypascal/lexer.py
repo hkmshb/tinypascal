@@ -10,6 +10,12 @@ class TokenType(enum.Enum):
     PLUS = "PLUS"
     DIV = "DIV"
     MUL = "MUL"
+    BEGIN = "BEGIN"
+    END = "END"
+    DOT = "DOT"
+    ID = "ID"
+    ASSIGN = "ASSIGN"
+    SEMI = "SEMI"
 
 
 class Token:
@@ -34,6 +40,12 @@ class Token:
         return self.__str__()
 
 
+RESERVED_KEYWORDS = {
+    "BEGIN": Token(TokenType.BEGIN, "BEGIN"),
+    "END": Token(TokenType.END, "END")
+}
+
+
 class Lexer:
 
     def __init__(self, text):
@@ -55,6 +67,12 @@ class Lexer:
         else:
             self.current_char = self.text[self.pos]
 
+    def peek(self):
+        peek_pos = self.pos + 1
+        if peek_pos > len(self.text) - 1:
+            return None
+        return self.text[peek_pos]
+
     def skip_whitespace(self):
         while self.current_char is not None and self.current_char.isspace():
             self.advance()
@@ -67,6 +85,15 @@ class Lexer:
             result += self.current_char
             self.advance()
         return int(result)
+
+    def _id(self):
+        '''Handle identifiers and reserved keywords.
+        '''
+        result = ''
+        while self.current_char is not None and self.current_char.isalnum():
+            result += self.current_char
+            self.advance()
+        return RESERVED_KEYWORDS.get(result, Token(TokenType.ID, result))
 
     def get_next_token(self):
         '''Lexical analyser (aka scanner or tokenizer)
@@ -94,6 +121,22 @@ class Lexer:
                 token = Token(token_type, self.current_char)
                 self.advance()
                 return token
+
+            if self.current_char.isalpha():
+                return self._id()
+
+            if self.current_char == ':' and self.peek() == '=':
+                self.advance()
+                self.advance()
+                return Token(TokenType.ASSIGN, ':=')
+
+            if self.current_char == ';':
+                self.advance()
+                return Token(TokenType.SEMI, ';')
+
+            if self.current_char == '.':
+                self.advance()
+                return Token(TokenType.DOT, '.')
 
             self.error()
         return Token(TokenType.EOF, None)
