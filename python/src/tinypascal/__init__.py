@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
 import pkg_resources
-from .lexer import Lexer
+from .lexer import Lexer, TokenType
 from .parser import Parser
 
 
@@ -13,13 +13,38 @@ def get_version():
     return packages[0].version
 
 
-class Interpreter:
+class NodeVisitor:
+
+    def visit(self, node):
+        method_name = 'visit_' + type(node).__name__
+        visitor = getattr(self, method_name, self.generic_visit)
+        return visitor(node)
+
+    def generic_visit(self, node):
+        raise Exception('No visit_{} method'.format(type(node).__name__))
+
+
+class Interpreter(NodeVisitor):
 
     def __init__(self, parser):
         self.parser = parser
 
+    def visit_BinOp(self, node):
+        if node.op.type == TokenType.PLUS:
+            return self.visit(node.left) + self.visit(node.right)
+        if node.op.type == TokenType.MINUS:
+            return self.visit(node.left) - self.visit(node.right)
+        if node.op.type == TokenType.MUL:
+            return self.visit(node.left) * self.visit(node.right)
+        if node.op.type == TokenType.DIV:
+            return self.visit(node.left) / self.visit(node.right)
+
+    def visit_Num(self, node):
+        return node.value
+
     def run(self):
-        return self.parser.parse()
+        tree = self.parser.parse()
+        return self.visit(tree)
 
 
 def main():
@@ -34,24 +59,7 @@ def main():
         try:
             parser = Parser(Lexer(text))
             interpreter = Interpreter(parser)
-            tree = interpreter.run()
-            print_tree(tree)
+            print(interpreter.run())
         except Exception as ex:
             print('error: {}'.format(ex))
-            raise ex
             sys.exit()
-
-
-def print_tree(root):
-    from .parser import BinOp, Num
-
-    def walk(node):
-        if isinstance(node, BinOp):
-            print(node.op.value)
-            walk(node.left)
-            walk(node.right)
-            print()
-        else:
-            print("%s " % node.value, end='')
-
-    walk(root)
