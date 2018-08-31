@@ -74,7 +74,7 @@ class Interpreter(NodeVisitor):
 def main():
     while True:
         try:
-            text = input('calc> ')
+            text = input('tinypascal> ')
         except IOError:
             break
         if not text:
@@ -83,7 +83,7 @@ def main():
         try:
             parser = Parser(Lexer(text))
             interpreter = Interpreter(parser)
-            print(interpreter.run())
+            interpreter.run()
             print(interpreter.GLOBAL_SCOPE)
         except Exception as ex:
             print('error: {}'.format(ex))
